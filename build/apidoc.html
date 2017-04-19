@@ -63,6 +63,15 @@
 
         <li>
 
+            <a class="apidocElementLiA" href="#apidoc.element.growl.growl">
+            function <span class="apidocSignatureSpan"></span>growl
+            <span class="apidocSignatureSpan">(msg, options, fn)</span>
+            </a>
+
+        </li>
+
+        <li>
+
             <span class="apidocSignatureSpan">string <span class="apidocSignatureSpan">growl.</span>version</span>
 
         </li>
@@ -73,6 +82,145 @@
 
 <div class="apidocSectionDiv">
 <h1><a href="#apidoc.module.growl" id="apidoc.module.growl">module growl</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.growl.growl" id="apidoc.element.growl.growl">
+        function <span class="apidocSignatureSpan"></span>growl
+        <span class="apidocSignatureSpan">(msg, options, fn)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function growl(msg, options, fn) {
+  var image
+    , args
+    , options = options || {}
+    , fn = fn || function(){};
+
+  if (options.exec) {
+    cmd = {
+        type: &#x22;Custom&#x22;
+      , pkg: options.exec
+      , range: []
+    };
+  }
+
+  // noop
+  if (!cmd) return fn(new Error(&#x27;growl not supported on this platform&#x27;));
+  args = [cmd.pkg];
+
+  // image
+  if (image = options.image) {
+    switch(cmd.type) {
+      case &#x27;Darwin-Growl&#x27;:
+        var flag, ext = path.extname(image).substr(1)
+        flag = flag || ext == &#x27;icns&#x27; &#x26;&#x26; &#x27;iconpath&#x27;
+        flag = flag || /^[A-Z]/.test(image) &#x26;&#x26; &#x27;appIcon&#x27;
+        flag = flag || /^png|gif|jpe?g$/.test(ext) &#x26;&#x26; &#x27;image&#x27;
+        flag = flag || ext &#x26;&#x26; (image = ext) &#x26;&#x26; &#x27;icon&#x27;
+        flag = flag || &#x27;icon&#x27;
+        args.push(&#x27;--&#x27; + flag, quote(image))
+        break;
+      case &#x27;Darwin-NotificationCenter&#x27;:
+        args.push(cmd.icon, quote(image));
+        break;
+      case &#x27;Linux&#x27;:
+        args.push(cmd.icon, quote(image));
+        // libnotify defaults to sticky, set a hint for transient notifications
+        if (!options.sticky) args.push(&#x27;--hint=int:transient:1&#x27;);
+        break;
+      case &#x27;Windows&#x27;:
+        args.push(cmd.icon + quote(image));
+        break;
+    }
+  }
+
+  // sticky
+  if (options.sticky) args.push(cmd.sticky);
+
+  // priority
+  if (options.priority) {
+    var priority = options.priority + &#x27;&#x27;;
+    var checkindexOf = cmd.priority.range.indexOf(priority);
+    if (~cmd.priority.range.indexOf(priority)) {
+      args.push(cmd.priority, options.priority);
+    }
+  }
+
+  //sound
+  if(options.sound &#x26;&#x26; cmd.type === &#x27;Darwin-NotificationCenter&#x27;){
+    args.push(cmd.sound, options.sound)
+  }
+
+  // name
+  if (options.name &#x26;&#x26; cmd.type === &#x22;Darwin-Growl&#x22;) {
+    args.push(&#x27;--name&#x27;, options.name);
+  }
+
+  switch(cmd.type) {
+    case &#x27;Darwin-Growl&#x27;:
+      args.push(cmd.msg);
+      args.push(quote(msg).replace(/\\n/g, &#x27;\n&#x27;));
+      if (options.title) args.push(quote(options.title));
+      break;
+    case &#x27;Darwin-NotificationCenter&#x27;:
+      args.push(cmd.msg);
+      var stringifiedMsg = quote(msg);
+      var escapedMsg = stringifiedMsg.replace(/\\n/g, &#x27;\n&#x27;);
+      args.push(escapedMsg);
+      if (options.title) {
+        args.push(cmd.title);
+        args.push(quote(options.title));
+      }
+      if (options.subtitle) {
+        args.push(cmd.subtitle);
+        args.push(quote(options.subtitle));
+      }
+      if (options.url) {
+        args.push(cmd.url);
+        args.push(quote(options.url));
+      }
+      break;
+    case &#x27;Linux-Growl&#x27;:
+      args.push(cmd.msg);
+      args.push(quote(msg).replace(/\\n/g, &#x27;\n&#x27;));
+      if (options.title) args.push(quote(options.title));
+      if (cmd.host) {
+        args.push(cmd.host.cmd, cmd.host.hostname)
+      }
+      break;
+    case &#x27;Linux&#x27;:
+      if (options.title) {
+        args.push(quote(options.title));
+        args.push(cmd.msg);
+        args.push(quote(msg).replace(/\\n/g, &#x27;\n&#x27;));
+      } else {
+        args.push(quote(msg).replace(/\\n/g, &#x27;\n&#x27;));
+      }
+      break;
+    case &#x27;Windows&#x27;:
+      args.push(quote(msg).replace(/\\n/g, &#x27;\n&#x27;));
+      if (options.title) args.push(cmd.title + quote(options.title));
+      if (options.url) args.push(cmd.url + quote(options.url));
+      break;
+    case &#x27;Custom&#x27;:
+      args[0] = (function(origCommand) {
+        var message = options.title
+          ? options.title + &#x27;: &#x27; + msg
+          : msg;
+        var command = origCommand.replace(/(^|[^%])%s/g, &#x27;$1&#x27; + quote(message));
+        if (command === origCommand) args.push(quote(message));
+        return command;
+      })(args[0]);
+      break;
+  }
+
+  // execute
+  exec(args.join(&#x27; &#x27;), fn);
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
 
 
 
